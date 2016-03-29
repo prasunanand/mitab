@@ -136,7 +136,7 @@ module Mitab
     end
     
     def print
-      @mitab
+      puts @mitab
     end
   end
 end
