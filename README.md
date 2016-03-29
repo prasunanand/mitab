@@ -8,6 +8,7 @@ A ruby parser for MITab file format.
 	gem install mitab
 ```
 
+#How to use ?
 
 ```ruby
 	text = open(filename) { |f| f.read }
