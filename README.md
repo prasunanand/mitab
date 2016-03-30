@@ -11,8 +11,11 @@ A ruby parser for MITab file format.
 #How to use ?
 
 ```ruby
+	require 'mitab'
+	
 	text = open(filename) { |f| f.read }
 	m = Mitab::MitabParser.new(text)
+	
 	m.print
 	puts m.mitab
 	puts m.nodes
