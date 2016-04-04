@@ -26,12 +26,12 @@ module Mitab
       }
     end
 
-    def mapPub(pubStr)
+    def map_pub(pubStr)
       arr = pubStr.split(':')
       {name:arr[0], value:arr[1]}
     end
 
-    def mapField(fieldStr)
+    def map_field(fieldStr)
       textInParenthesis = /\((.*?)\)/
       textInQuotes = /\"(.*?)\"/
       if(fieldStr.match(textInQuotes).nil? || fieldStr.match(textInParenthesis).nil?)
@@ -41,7 +41,7 @@ module Mitab
       {name:fieldStr.match(textInQuotes)[1], value:fieldStr.match(textInParenthesis)[1]}
     end
 
-    def addScore(score)
+    def add_score(score)
       if( !score[:score].to_f.nan?)
         if(@scores.key?(score[:name]))
           if(@scores[score[:name]][:min].to_f > score[:score].to_f) 
@@ -56,21 +56,21 @@ module Mitab
       end
     end
 
-    def mapScore(scoreStr)
+    def map_score(scoreStr)
       arr = scoreStr.split(':')
       score = {name:arr[0], score:arr[1]}
-      addScore(score)
+      add_score(score)
       score
     end
 
-    def mapTaxonomy(taxStr)
+    def map_taxonomy(taxStr)
       textInTax = /\:(.*?)\(/
       if(taxStr != '-')
           return (taxStr.match(textInTax).nil?) ? taxStr.split(':')[1] : taxStr.match(textInTax)[1]
       end
     end
 
-    def getNode(idStr, altIdsStr, aliasStr, taxStr)
+    def get_node(idStr, altIdsStr, aliasStr, taxStr)
       geneName = /\((gene name)\)/
       geneNameSynonym = /\((gene name synonym)\)/
       textInTax = /\:(.*?)\(/
@@ -80,15 +80,15 @@ module Mitab
 
       gNameStr = (gNameStr.nil?) ? gNameAliases.select{ |gNameAlias| gNameAlias.match(geneNameSynonym)} : gNameStr
       ids = idStr.split("|") + altIdsStr.split("|") + aliasStr.split("|")
-      ids = ids.map{|x| mapPub(x)}
+      ids = ids.map{|x| map_pub(x)}
       id = ids.select{|id| id[:name] == "uniprotkb"}
       node = {
         id: ids[0][:value],
         ids: ids,
         uniprot: (id.nil?) ? '' : id,
         geneName: (gNameStr.nil?) ? '' : gNameStr.map{|gStr| gStr.match(textInTax)[1]},
-        altIds: altIdsStr.split('|').map{|x| mapPub(x)},
-        taxonomy: taxStr.split('|').uniq{|x| mapTaxonomy(x)},
+        altIds: altIdsStr.split('|').map{|x| map_pub(x)},
+        taxonomy: taxStr.split('|').uniq{|x| map_taxonomy(x)},
       }
 
     end
@@ -104,19 +104,19 @@ module Mitab
         return {}
       end
 
-      nodeA = getNode(fields[0], fields[2], fields[4], fields[9])
-      nodeB = getNode(fields[1], fields[3], fields[5], fields[10])
+      nodeA = get_node(fields[0], fields[2], fields[4], fields[9])
+      nodeB = get_node(fields[1], fields[3], fields[5], fields[10])
 
       interaction = {
         source: nodeA[:id],
         target: nodeB[:id],
-        detMethods: fields[6].split('|').map{|x| mapField(x)},
+        detMethods: fields[6].split('|').map{|x| map_field(x)},
         firstAuthor: fields[7].split('|'),
-        publications: fields[8].split('|').map{|x| mapField(x)},
-        intTypes: fields[11].split('|').map{|x| mapField(x)},
-        sourceDbs: fields[12].split('|').map{|x| mapField(x)},
-        intIds: fields[13].split('|').map{|x| mapPub(x)},
-        scores: fields[14].split('|').map{|x| mapScore(x)},
+        publications: fields[8].split('|').map{|x| map_field(x)},
+        intTypes: fields[11].split('|').map{|x| map_field(x)},
+        sourceDbs: fields[12].split('|').map{|x| map_field(x)},
+        intIds: fields[13].split('|').map{|x| map_pub(x)},
+        scores: fields[14].split('|').map{|x| map_score(x)},
       }
 
 
