@@ -1,0 +1,140 @@
+#!/usr/bin/env ruby
+#
+# mitab parser
+# Author:: Prasun Anand
+# License:: MIT
+#
+# Copyright (C) 2016-2017 Prasun Anand <prasunanand.bitsp@gmail.com>
+
+USAGE = "Mitab parser"
+
+gempath = File.dirname(File.dirname(__FILE__))
+$: << File.join(gempath,'lib')
+
+# VERSION_FILENAME=File.join(gempath,'VERSION')
+# version = 0.0.2
+
+require 'mitab'
+require 'mitab/pcows'
+require 'optparse'
+require 'timeout'
+require 'fileutils'
+
+# options = { show_help: false, source: 'https://github.com/prasunanand/mitab', date: Time.now.to_s, thread_lines: 40_000, timeout: 180 }
+options = {}
+opts = OptionParser.new do |o|
+#   o.banner = "Usage: #{File.basename($0)} [options] filename\ne.g.  #{File.basename($0)} < test/data/input/somaticsniper.vcf"
+
+  o.on('-i','--ignore-missing', 'Ignore missing data') do 
+    options[:ignore_missing] = true
+  end
+  o.on('--print nodes',String, 'Evaluate filter on each record') do |cmd|
+    # puts cmd
+    options[:param1] = true
+  end
+  o.on("--num-threads [num]", Integer, "Multi-core version (default ALL)") do |i|
+    options[:num_threads] = i
+  end
+  o.on("--thread-lines num", Integer, "Fork thread on num lines (default #{options[:thread_lines]})") do |i|
+    options[:thread_lines] = i
+  end
+  o.on("--timeout [num]", Integer, "Timeout waiting for thread to complete (default #{options[:timeout]})") do |i|
+    options[:timeout] = i
+  end
+  o.on("--debug", "Show debug messages and keep intermediate output") do |v|
+    options[:debug] = true
+  end
+  o.on("-v", "--verbose", "Run verbosely") do |v|
+    options[:verbose] = true
+  end
+end
+opts.parse!(ARGV)
+
+
+options[:thread_lines] = 40_000
+
+
+
+
+if options[:show_help] 
+  print opts 
+  print USAGE
+  exit 1
+end
+
+if RUBY_VERSION =~ /^1/
+  $stderr.print "WARNING: mitab runs on Ruby 2.x only\n"
+end
+
+# $stderr.print "Options: ",options,"\n" if !options[:quiet]
+
+
+
+include Mitab
+
+# # Parse a VCF line and return the (template) result as a string buffer
+def parse_line line
+  MitabParser.parse(line)
+  # rec = VcfRecord.new(fields,header)
+  # r = rec # alias
+
+  # # ignore_missing = options[:ignore_missing]
+  # quiet = options[:quiet]
+end
+
+CHUNK_SIZE = options[:thread_lines]
+
+pcows = PCOWS.new(options[:num_threads],CHUNK_SIZE,'mitab',options[:timeout],
+                  options[:quiet],options[:debug])
+
+chunk_lines = []
+line_number=0
+
+
+
+begin
+  # Define linear parser function (going through one chunk)
+  process = lambda { | lines |
+    res = []
+    lines.each do | line |
+      res << parse_line(line)
+    end
+    res
+  }
+
+  # ---- Main loop
+  STDIN.each_line do | line |
+    line_number += 1
+
+    chunk_lines << line
+
+#     # ---- In the following section the VCF lines are parsed by chunks
+#     #      The chunks may go into different threads
+    # puts CHUNK_SIZE
+#    puts chunk_lines.size
+    if chunk_lines.size >= CHUNK_SIZE
+      # ---- process one chunk
+      $stderr.print '.' if not options[:quiet]
+      pcows.wait_for_worker_slot()
+      
+      pcows.submit_worker(process,chunk_lines)
+      pcows.process_output()
+
+      chunk_lines = []
+    end
+  end
+  pcows.submit_final_worker(process,chunk_lines)
+  pcows.wait_for_workers()
+  pcows.process_remaining_output()
+# #   print template.footer(binding) if template
+# #   stats.print if stats
+
+rescue Exception => e
+  if e.message != 'exit'
+    $stderr.print "ERROR: "
+    $stderr.print e.message,"\n" 
+  end
+  pcows.cleanup()
+  raise if options[:verbose]
+  exit 1
+end
