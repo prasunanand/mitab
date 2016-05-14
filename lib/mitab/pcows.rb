@@ -31,6 +31,7 @@ class PCOWS
   # lambda closure so it can pick up surrounding scope at invocation
   # in addition to the data captured in 'state'.
   
+
   def submit_worker(func,state)
     pid = nil
     if multi_threaded
@@ -40,7 +41,15 @@ class PCOWS
         # ---- This is running a new copy-on-write process
         tempfn = fn+'.'+RUNNINGEXT
         STDOUT.reopen(File.open(tempfn, 'w+'))
-        func.call(state).each { | line | print line }
+        fresult = func.call(state) 
+        mitab = {
+          links: fresult[0],
+          nodes: fresult[1].values,
+          ids: fresult[1].values.map { |h| h[:id] },
+          taxa: fresult[1].values.reduce([]){ |union, x| union | x[:taxonomy]}.compact,
+          scores: fresult[2].values
+        }
+        puts mitab
         STDOUT.flush
         STDOUT.close
         # sleep 0.1
@@ -56,7 +65,15 @@ class PCOWS
       Process.detach(pid)
     else
       # ---- Single threaded: call in main process and output immediately
-      func.call(state).each { | line | print line }
+      fresult = func.call(state) 
+      mitab = {
+        links: fresult[0],
+        nodes: fresult[1].values,
+        ids: fresult[1].values.map { |h| h[:id] },
+        taxa: fresult[1].values.reduce([]){ |union, x| union | x[:taxonomy]}.compact,
+        scores: fresult[2].values
+      }
+      puts mitab
     end
     @pid_list << [ pid,count,fn ]
     return true

@@ -73,8 +73,8 @@ end
 include Mitab
 
 # # Parse a VCF line and return the (template) result as a string buffer
-def parse_line line
-  MitabParser.parse(line)
+def parse_line line, tScores
+  MitabParser.parse(line, tScores)
   # rec = VcfRecord.new(fields,header)
   # r = rec # alias
 
@@ -95,11 +95,17 @@ line_number=0
 begin
   # Define linear parser function (going through one chunk)
   process = lambda { | lines |
-    res = []
+    interactions = []
+    nodes = {}
+    tScores = {}
     lines.each do | line |
-      res << parse_line(line)
+      result =  parse_line(line, tScores)
+      interactions << result[0]
+      nodes[result[1][:id]] = result[1]
+      nodes[result[2][:id]] = result[2]
+      tScores = result[3]
     end
-    res
+    return interactions, nodes, tScores
   }
 
   # ---- Main loop

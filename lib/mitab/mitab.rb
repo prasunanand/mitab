@@ -2,27 +2,7 @@ module Mitab
   class MitabParser
     attr_reader :nodes, :links, :scores, :mitab
    
-    def initialize(text)
-      # @nodes = {}
-      # @links= []
-      # @scores = {}
-      # @mitab
-      
-
-      # lines = text.split("\n")
-
-      # interactions = lines.map{ |l| parse(l)}
-      # nodeval = @nodes.values
-
-      # @links = interactions
-
-      # @mitab = {
-      #   links: interactions,
-      #   nodes: nodeval,
-      #   ids: nodeval.map { |h| h[:id] },
-      #   taxa: nodeval.reduce([]){ |union, x| union | x[:taxonomy]}.compact,
-      #   scores: @scores.values
-      # }
+    def initialize
       puts "lib invoked"
     end
 
@@ -41,25 +21,25 @@ module Mitab
       {name:fieldStr.match(textInQuotes)[1], value:fieldStr.match(textInParenthesis)[1]}
     end
 
-    def self.add_score(score)
+    def self.add_score(score, tScores)
       if( !score[:score].to_f.nan?)
-        if(@scores.key?(score[:name]))
-          if(@scores[score[:name]][:min].to_f > score[:score].to_f) 
-            @scores[score[:name]][:min] = score[:score].to_f
+        if(tScores.key?(score[:name]))
+          if(tScores[score[:name]][:min].to_f > score[:score].to_f) 
+            tScores[score[:name]][:min] = score[:score].to_f
           end
-          if(@scores[score[:name]][:max].to_f < score[:score].to_f) 
-            @scores[score[:name]][:max] = score[:score].to_f
+          if(tScores[score[:name]][:max].to_f < score[:score].to_f) 
+            tScores[score[:name]][:max] = score[:score].to_f
           end
         else
-            @scores[score[:name]] = {name:score[:name], min:score[:score], max:score[:score]}
+            tScores[score[:name]] = {name:score[:name], min:score[:score], max:score[:score]}
         end
       end
     end
 
-    def self.map_score(scoreStr)
+    def self.map_score(scoreStr,tScores)
       arr = scoreStr.split(':')
       score = {name:arr[0], score:arr[1]}
-      # add_score(score)
+      self.add_score(score, tScores)
       score
     end
 
@@ -93,7 +73,7 @@ module Mitab
 
     end
 
-    def self.parse(line)
+    def self.parse(line, tScores)
       if (!line.is_a? String) 
         puts "MITab cannot parse line"
         return {}
@@ -116,16 +96,15 @@ module Mitab
         intTypes: fields[11].split('|').map{|x| map_field(x)},
         sourceDbs: fields[12].split('|').map{|x| map_field(x)},
         intIds: fields[13].split('|').map{|x| map_pub(x)},
-        scores: fields[14].split('|').map{|x| map_score(x)},
+        scores: fields[14].split('|').map{|x| map_score(x, tScores)}
       }
 
 
 
-      # @nodes[nodeA[:id]] = nodeA
-      # @nodes[nodeB[:id]] = nodeB
+      # nodes[nodeA[:id]] = nodeA
+      # nodes[nodeB[:id]] = nodeB
 
-      interaction
-      # line
+      return interaction, nodeA, nodeB, tScores
     end
     
     def print
