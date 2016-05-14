@@ -1,6 +1,5 @@
 module Mitab
   class MitabParser
-    attr_reader :nodes, :links, :scores, :mitab
    
     def initialize
       puts "lib invoked"
