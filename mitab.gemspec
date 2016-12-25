@@ -8,5 +8,5 @@ Gem::Specification.new do |s|
   s.email       = 'prasunanand.bitsp@gmail.com'
   s.files       = ["lib/mitab.rb"]
   s.homepage    = 'http://rubygems.org/gems/mitab'
-  s.license     = 'MIT'
+  s.license     = 'BSD-3-Clause'
 end
